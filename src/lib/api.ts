@@ -1,6 +1,7 @@
-import { supabase, anonymizeIP } from './supabase';
+import axios from 'axios';
 
 const PROXY_URL = 'https://stock-price-checker-proxy.freecodecamp.rocks';
+const MONGODB_URI = 'mongodb+srv://vkhumalo:ERzeVUkA2s0LJxan@cluster0.aybht.mongodb.net/?retryWrites=true&w=majority';
 
 export interface StockResponse {
   symbol: string;
@@ -9,33 +10,33 @@ export interface StockResponse {
 }
 
 export const fetchStock = async (symbol: string, like = false): Promise<StockResponse> => {
-  // Fetch stock price from proxy
-  const response = await fetch(`${PROXY_URL}/v1/stock/${symbol}/quote`);
-  const data = await response.json();
+  try {
+    // Fetch stock price from FreeCodeCamp proxy
+    const priceResponse = await axios.get(`${PROXY_URL}/v1/stock/${symbol}/quote`);
+    const price = priceResponse.data.latestPrice || 0;
 
-  // Get likes count
-  const { count } = await supabase
-    .from('stock_likes')
-    .select('*', { count: 'exact' })
-    .eq('stock_symbol', symbol.toUpperCase());
+    // Fetch likes count from our API
+    const likesResponse = await axios.get(`/api/stock-likes?symbol=${symbol}`);
+    const likes = likesResponse.data.likes || 0;
 
-  // Add like if requested
-  if (like) {
-    const response = await fetch('https://api.ipify.org?format=json');
-    const { ip } = await response.json();
-    const ipHash = await anonymizeIP(ip);
+    // Add like if requested
+    if (like) {
+      await axios.post('/api/stock-likes', { symbol });
+    }
 
-    await supabase
-      .from('stock_likes')
-      .insert({ stock_symbol: symbol.toUpperCase(), ip_hash: ipHash })
-      .single();
+    return {
+      symbol: symbol.toUpperCase(),
+      price,
+      likes,
+    };
+  } catch (error) {
+    console.error('Error fetching stock data:', error);
+    return {
+      symbol: symbol.toUpperCase(),
+      price: 0,
+      likes: 0,
+    };
   }
-
-  return {
-    symbol: symbol.toUpperCase(),
-    price: data.latestPrice || 0,
-    likes: count || 0,
-  };
 };
 
 export const fetchStocks = async (symbols: string[], like = false): Promise<StockResponse[]> => {
