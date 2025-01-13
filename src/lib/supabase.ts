@@ -11,10 +11,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.log('- VITE_SUPABASE_ANON_KEY');
 }
 
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
-);
+// Create a mock client if environment variables are missing
+export const supabase = supabaseUrl && supabaseAnonKey
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : {
+      from: () => ({
+        select: () => ({ data: null, error: new Error('Supabase not configured') }),
+        insert: () => ({ data: null, error: new Error('Supabase not configured') }),
+      }),
+    } as any;
 
 export const anonymizeIP = async (ip: string) => {
   return SHA256(ip).toString();
