@@ -1,39 +1,19 @@
 import { useState } from "react";
 import { StockSearch } from "@/components/StockSearch";
 import { StockCard } from "@/components/StockCard";
-import { Watchlist } from "@/components/Watchlist";
-import { Stock, WatchlistItem } from "@/types/stock";
 import { useToast } from "@/components/ui/use-toast";
-
-// Simulated API call - replace with real API integration
-const fetchStockData = async (symbol: string): Promise<Stock> => {
-  // Simulate API delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  
-  // Simulate random stock data
-  const price = Math.random() * 1000;
-  const change = (Math.random() - 0.5) * 20;
-  
-  return {
-    symbol,
-    price,
-    change,
-    changePercent: (change / price) * 100,
-    volume: Math.floor(Math.random() * 10000000),
-  };
-};
+import { fetchStock, fetchStocks, StockResponse } from "@/lib/api";
 
 const Index = () => {
-  const [currentStock, setCurrentStock] = useState<Stock | null>(null);
-  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [stocks, setStocks] = useState<StockResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSearch = async (symbol: string) => {
+  const handleSearch = async (symbol: string, like = false) => {
     try {
       setIsLoading(true);
-      const data = await fetchStockData(symbol);
-      setCurrentStock(data);
+      const data = await fetchStock(symbol, like);
+      setStocks([data]);
     } catch (error) {
       toast({
         title: "Error",
@@ -45,23 +25,20 @@ const Index = () => {
     }
   };
 
-  const addToWatchlist = () => {
-    if (!currentStock) return;
-    
-    const newItem: WatchlistItem = {
-      ...currentStock,
-      id: `${currentStock.symbol}-${Date.now()}`,
-    };
-    
-    setWatchlist((prev) => [...prev, newItem]);
-    toast({
-      title: "Success",
-      description: `${currentStock.symbol} added to watchlist`,
-    });
-  };
-
-  const removeFromWatchlist = (id: string) => {
-    setWatchlist((prev) => prev.filter((item) => item.id !== id));
+  const handleCompareStocks = async (symbols: string[], like = false) => {
+    try {
+      setIsLoading(true);
+      const data = await fetchStocks(symbols, like);
+      setStocks(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch stock data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,37 +46,25 @@ const Index = () => {
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">Stock Price Checker</h1>
         <p className="text-muted-foreground">
-          Search for stocks and add them to your watchlist
+          Search for stocks and compare their prices and likes
         </p>
       </div>
 
-      <StockSearch onSearch={handleSearch} />
+      <StockSearch onSearch={handleSearch} onCompare={handleCompareStocks} />
 
       {isLoading && (
         <div className="text-center py-8">Loading...</div>
       )}
 
-      {currentStock && !isLoading && (
-        <div className="max-w-md mx-auto">
+      <div className="grid gap-4 md:grid-cols-2">
+        {stocks.map((stock) => (
           <StockCard
-            {...currentStock}
-            onAddToWatchlist={addToWatchlist}
-            isInWatchlist={watchlist.some(
-              (item) => item.symbol === currentStock.symbol
-            )}
+            key={stock.symbol}
+            {...stock}
+            onLike={() => handleSearch(stock.symbol, true)}
           />
-        </div>
-      )}
-
-      {watchlist.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Your Watchlist</h2>
-          <Watchlist
-            stocks={watchlist}
-            onRemoveFromWatchlist={removeFromWatchlist}
-          />
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 };
