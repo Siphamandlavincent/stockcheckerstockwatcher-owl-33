@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ThumbsUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface StockCardProps {
+export interface StockCardProps {
   symbol: string;
   price: number;
   likes: number;

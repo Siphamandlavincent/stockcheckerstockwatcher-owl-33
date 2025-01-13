@@ -1,9 +1,7 @@
 export interface Stock {
   symbol: string;
   price: number;
-  change: number;
-  changePercent: number;
-  volume: number;
+  likes: number;
 }
 
 export interface WatchlistItem extends Stock {

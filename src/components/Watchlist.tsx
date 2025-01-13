@@ -20,9 +20,10 @@ export const Watchlist = ({ stocks, onRemoveFromWatchlist }: WatchlistProps) => 
       {stocks.map((stock) => (
         <StockCard
           key={stock.id}
-          {...stock}
-          isInWatchlist={true}
-          onRemoveFromWatchlist={() => onRemoveFromWatchlist(stock.id)}
+          symbol={stock.symbol}
+          price={stock.price}
+          likes={0}
+          onLike={() => onRemoveFromWatchlist(stock.id)}
         />
       ))}
     </div>
